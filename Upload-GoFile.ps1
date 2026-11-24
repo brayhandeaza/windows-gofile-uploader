@@ -4,18 +4,22 @@ param(
     [ValidateRange(0, 2147483647)][int]$Limit = 0,
     [switch]$Once,
     [switch]$AllowLargeSource,
+    [switch]$Webtor,
+    [string]$Directory,
     [switch]$Check
 )
 $ErrorActionPreference = 'Stop'
 $python = Join-Path $PSScriptRoot '.runtime\python\python.exe'
-$script = Join-Path $PSScriptRoot 'apps\scraper\scripts\upload_webtor_gofile.py'
+$name = if ($Webtor) { 'upload_webtor_gofile.py' } else { 'upload_local_gofile.py' }
+$script = Join-Path $PSScriptRoot ('apps\scraper\scripts\' + $name)
 if (!(Test-Path -LiteralPath $python)) {
     $python = Join-Path $PSScriptRoot '.venv\Scripts\python.exe'
     if (!(Test-Path -LiteralPath $python)) { throw 'Ejecuta Setup-Windows.cmd primero para instalar las dependencias.' }
 }
 $arguments = @('-X', 'utf8', '-u', $script, '--workers', "$Workers", '--limit', "$Limit")
-if ($Once) { $arguments += '--once' }
-if ($AllowLargeSource) { $arguments += '--allow-large-source' }
+if (!$Webtor -and $Directory) { $arguments += @('--directory', $Directory) }
+if ($Webtor -and $Once) { $arguments += '--once' }
+if ($Webtor -and $AllowLargeSource) { $arguments += '--allow-large-source' }
 if ($Check) {
     & $python -X utf8 -c "import sys; sys.path.insert(0, sys.argv[1]); import requests, certifi; import upload_webtor_gofile; print('Python y dependencias disponibles; transferencia original sin FFmpeg')" (Split-Path -Parent $script)
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
